@@ -787,6 +787,11 @@
                     </label>
                   </div>
                 </div>
+                <div class="form-group" style="border:2px solid var(--green);border-radius:10px;padding:10px;background:var(--green-lighter);">
+                  <label style="color:var(--blue);">Total Weight</label>
+                  <input type="number" id="d2-total-weight" placeholder="e.g. 500" step="any"/>
+                  <span class="unit" style="color:var(--blue);font-weight:600;">kg</span>
+                </div>
               </div>
             </div>
 
@@ -821,7 +826,7 @@
                     <th>Shift</th>
                     <th>Operator</th>
                     <th colspan="5" style="text-align:center;background:#eaf3fb;">— First Pass —</th>
-                    <th colspan="5" style="text-align:center;background:#eafad1;">— Second Pass —</th>
+                    <th colspan="6" style="text-align:center;background:#eafad1;">— Second Pass —</th>
                     <th>Remarks</th>
                     <th></th>
                   </tr>
@@ -839,6 +844,7 @@
                     <th style="background:#eafad1;">Draft</th>
                     <th style="background:#eafad1;">Output Wt (g/mtr)</th>
                     <th style="background:#eafad1;">Autoleveller</th>
+                    <th style="background:#eafad1;color:var(--blue);font-weight:700;">Total Wt (kg)</th>
                     <th></th><th></th>
                   </tr>
                 </thead>
@@ -1058,7 +1064,8 @@
         inputWeight:   document.getElementById('d2-input-weight').value,
         draft:         document.getElementById('d2-draft').value,
         outputWeight:  document.getElementById('d2-output-weight').value,
-        autoleveller:  document.getElementById('d2-autoleveller').checked
+        autoleveller:  document.getElementById('d2-autoleveller').checked,
+        totalWeight:   document.getElementById('d2-total-weight').value
       },
       remarks: document.getElementById('d-remarks').value.trim(),
       savedAt: new Date().toISOString()
@@ -1078,7 +1085,7 @@
     document.getElementById('d-date').value = today;
     ['d-shift','d-operator',
      'd1-delivery','d1-length','d1-input-weight','d1-draft','d1-output-weight',
-     'd2-delivery','d2-length','d2-input-weight','d2-draft','d2-output-weight','d-remarks']
+     'd2-delivery','d2-length','d2-input-weight','d2-draft','d2-output-weight','d2-total-weight','d-remarks']
       .forEach(id => { document.getElementById(id).value = ''; });
     document.getElementById('d1-autoleveller').checked = false;
     document.getElementById('d2-autoleveller').checked = false;
@@ -1121,6 +1128,7 @@
         <td style="background:#f5fdf0;">${e.p2.draft || '–'}</td>
         <td style="background:#f5fdf0;font-weight:600;color:var(--blue);">${e.p2.outputWeight || '–'}</td>
         <td style="background:#f5fdf0;">${tick(e.p2.autoleveller)}</td>
+        <td style="background:#f5fdf0;font-weight:700;color:var(--blue);">${e.p2.totalWeight || '–'}</td>
         <td style="max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(e.remarks)}">${esc(e.remarks) || '–'}</td>
         <td>
           <button class="del-btn" onclick="deleteDrawEntry(${e.id})" title="Delete">
@@ -1154,7 +1162,7 @@
     const allEntries  = fe.length + de.length;
     const todayCount  = fe.filter(e => e.date === today).length + de.filter(e => e.date === today).length;
     const flyerProd   = fe.reduce((s, e) => s + (parseFloat(e.prodKg) || 0), 0);
-    const drawProd    = de.reduce((s, e) => s + (parseFloat(e.p2?.outputWeight) || parseFloat(e.p1?.outputWeight) || 0), 0);
+    const drawProd    = de.reduce((s, e) => s + (parseFloat(e.p2?.totalWeight) || 0), 0);
 
     document.getElementById('stat-total').textContent      = allEntries;
     document.getElementById('stat-today').textContent      = todayCount;
