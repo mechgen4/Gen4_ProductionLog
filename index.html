@@ -866,10 +866,28 @@
 <!-- Toast container -->
 <div class="toast-container" id="toastContainer"></div>
 
-<script>
-  // ── Storage keys ──
-  const STORE_KEY  = 'gen4_flyer_logs';
-  const DSTORE_KEY = 'gen4_draw_logs';
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, getDocs }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  // ── Firebase init ──
+  const firebaseConfig = {
+    apiKey:            "AIzaSyDcTMmXR05nBxD1k3o9SGW6T3nGfQHDN7o",
+    authDomain:        "gen4-productionlog.firebaseapp.com",
+    projectId:         "gen4-productionlog",
+    storageBucket:     "gen4-productionlog.firebasestorage.app",
+    messagingSenderId: "754999209069",
+    appId:             "1:754999209069:web:e9a80b061b6a427eb3a364"
+  };
+  const app      = initializeApp(firebaseConfig);
+  const db       = getFirestore(app);
+  const flyerCol = collection(db, 'flyer_logs');
+  const drawCol  = collection(db, 'draw_logs');
+
+  // ── In-memory state ──
+  let flyerEntries = [];
+  let drawEntries  = [];
 
   // ── Load entries from localStorage ──
   function loadEntries() {
@@ -880,28 +898,31 @@
     localStorage.setItem(STORE_KEY, JSON.stringify(arr));
   }
 
-  // ── Draw Frame storage ──
-  function loadDrawEntries() {
-    try { return JSON.parse(localStorage.getItem(DSTORE_KEY) || '[]'); }
-    catch { return []; }
-  }
-  function saveDrawEntries(arr) { localStorage.setItem(DSTORE_KEY, JSON.stringify(arr)); }
-
-  // ── Set today's date on load ──
-  window.addEventListener('DOMContentLoaded', () => {
+  // ── Start real-time listeners on load ──
+  document.addEventListener('DOMContentLoaded', () => {
     const today = new Date().toISOString().slice(0, 10);
     document.getElementById('f-date').value = today;
     document.getElementById('d-date').value = today;
-
-    // Topbar date
     document.getElementById('topbarDate').textContent =
       new Date().toLocaleDateString('en-IN', { weekday:'short', day:'2-digit', month:'short', year:'numeric' });
 
-    updateDashboard();
+    // Flyer listener
+    onSnapshot(query(flyerCol, orderBy('createdAt','desc')), snap => {
+      flyerEntries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      updateDashboard();
+      if (document.getElementById('panel-history').style.display !== 'none') renderHistory();
+    }, err => toast('Flyer sync error: ' + err.message, 'error'));
+
+    // Draw listener
+    onSnapshot(query(drawCol, orderBy('createdAt','desc')), snap => {
+      drawEntries = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      updateDashboard();
+      if (document.getElementById('dpanel-history').style.display !== 'none') renderDrawHistory();
+    }, err => toast('Draw sync error: ' + err.message, 'error'));
   });
 
   // ── Navigation ──
-  function showView(view) {
+  window.showView = function showView(view) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById('view-' + view).classList.add('active');
 
@@ -915,7 +936,7 @@
   }
 
   // ── Tabs ──
-  function showTab(tab) {
+  window.showTab = function showTab(tab) {
     document.getElementById('panel-form').style.display    = tab === 'form'    ? 'block' : 'none';
     document.getElementById('panel-history').style.display = tab === 'history' ? 'block' : 'none';
     document.getElementById('tab-form').classList.toggle('active',    tab === 'form');
@@ -923,164 +944,133 @@
     if (tab === 'history') renderHistory();
   }
 
-  // ── Save entry ──
-  function saveEntry() {
-    const date    = document.getElementById('f-date').value;
-    const shift   = document.getElementById('f-shift').value;
-    const op      = document.getElementById('f-operator').value.trim();
-    const speed   = document.getElementById('f-flyer-speed').value;
-    const tpi     = document.getElementById('f-tpi').value;
-    const hank    = document.getElementById('f-hank-time').value.trim();
-    const spin    = document.getElementById('f-spindles').value;
-    const draft   = document.getElementById('f-draft').value;
-    const prodkg  = document.getElementById('f-prod-kg').value;
-    const layers  = document.getElementById('f-layers').value;
-    const remarks = document.getElementById('f-remarks').value.trim();
-
-    if (!date) { toast('Please select a date.', 'error'); return; }
+  // ── Flyer Frame: Save ──
+  window.saveEntry = async function() {
+    const date  = document.getElementById('f-date').value;
+    const shift = document.getElementById('f-shift').value;
+    const op    = document.getElementById('f-operator').value.trim();
+    if (!date)  { toast('Please select a date.', 'error'); return; }
     if (!shift) { toast('Please select a shift.', 'error'); return; }
-    if (!op) { toast('Please enter operator name.', 'error'); return; }
+    if (!op)    { toast('Please enter operator name.', 'error'); return; }
+    try {
+      await addDoc(flyerCol, {
+        date, shift, operator: op,
+        flyerSpeed: document.getElementById('f-flyer-speed').value,
+        tpi:        document.getElementById('f-tpi').value,
+        hankTime:   document.getElementById('f-hank-time').value.trim(),
+        spindles:   document.getElementById('f-spindles').value,
+        draft:      document.getElementById('f-draft').value,
+        prodKg:     document.getElementById('f-prod-kg').value,
+        layers:     document.getElementById('f-layers').value,
+        remarks:    document.getElementById('f-remarks').value.trim(),
+        createdAt:  Date.now()
+      });
+      toast('Entry saved!', 'success');
+      window.clearForm();
+    } catch(e) { toast('Save failed: ' + e.message, 'error'); }
+  };
 
-    const entry = {
-      id: Date.now(), date, shift, operator: op,
-      flyerSpeed: speed, tpi, hankTime: hank,
-      spindles: spin, draft, prodKg: prodkg, layers, remarks,
-      savedAt: new Date().toISOString()
-    };
-
-    const entries = loadEntries();
-    entries.unshift(entry);
-    saveEntries(entries);
-
-    toast('Entry saved successfully!', 'success');
-    clearForm();
-    updateDashboard();
-  }
-
-  // ── Clear form ──
-  function clearForm() {
+  window.clearForm = function() {
     const today = new Date().toISOString().slice(0, 10);
     document.getElementById('f-date').value = today;
     ['f-shift','f-operator','f-flyer-speed','f-tpi','f-hank-time',
      'f-spindles','f-draft','f-prod-kg','f-layers','f-remarks']
       .forEach(id => { document.getElementById(id).value = ''; });
-    document.getElementById('f-shift').value = '';
-  }
+  };
 
-  // ── Render history ──
   function renderHistory() {
-    const entries = loadEntries();
-    const tbody   = document.getElementById('history-tbody');
-    const empty   = document.getElementById('history-empty');
-    const table   = document.getElementById('history-table');
-
+    const tbody = document.getElementById('history-tbody');
+    const empty = document.getElementById('history-empty');
+    const table = document.getElementById('history-table');
     tbody.innerHTML = '';
-
-    if (entries.length === 0) {
-      table.style.display = 'none';
-      empty.style.display = 'block';
-      document.getElementById('clear-all-btn').style.display = 'none';
-      return;
+    if (flyerEntries.length === 0) {
+      table.style.display = 'none'; empty.style.display = 'block';
+      document.getElementById('clear-all-btn').style.display = 'none'; return;
     }
-
-    table.style.display = '';
-    empty.style.display = 'none';
+    table.style.display = ''; empty.style.display = 'none';
     document.getElementById('clear-all-btn').style.display = '';
-
-    entries.forEach((e, i) => {
+    flyerEntries.forEach((e, i) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td style="color:var(--gray-text);font-weight:600;">${entries.length - i}</td>
+        <td style="color:var(--gray-text);font-weight:600;">${flyerEntries.length - i}</td>
         <td style="white-space:nowrap;">${fmtDate(e.date)}</td>
         <td><span class="badge-shift badge-${e.shift}">${e.shift}</span></td>
         <td style="font-weight:600;">${esc(e.operator)}</td>
-        <td>${e.flyerSpeed || '–'}</td>
-        <td>${e.tpi || '–'}</td>
-        <td>${e.hankTime || '–'}</td>
-        <td>${e.spindles || '–'}</td>
+        <td>${e.flyerSpeed || '–'}</td><td>${e.tpi || '–'}</td>
+        <td>${e.hankTime || '–'}</td><td>${e.spindles || '–'}</td>
         <td>${e.draft || '–'}</td>
         <td style="font-weight:600;color:var(--blue);">${e.prodKg || '–'}</td>
         <td>${e.layers || '–'}</td>
-        <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(e.remarks)}">${esc(e.remarks) || '–'}</td>
-        <td>
-          <button class="del-btn" onclick="deleteEntry(${e.id})" title="Delete">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-          </button>
-        </td>`;
+        <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(e.remarks)}">${esc(e.remarks)||'–'}</td>
+        <td><button class="del-btn" onclick="deleteEntry('${e.id}')" title="Delete">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </button></td>`;
       tbody.appendChild(tr);
     });
   }
 
-  // ── Delete entry ──
-  function deleteEntry(id) {
+  window.deleteEntry = async function(id) {
     if (!confirm('Delete this entry?')) return;
-    const entries = loadEntries().filter(e => e.id !== id);
-    saveEntries(entries);
-    renderHistory();
-    updateDashboard();
-    toast('Entry deleted.', 'error');
-  }
+    try { await deleteDoc(doc(db,'flyer_logs',id)); toast('Entry deleted.','error'); }
+    catch(e) { toast('Delete failed: '+e.message,'error'); }
+  };
 
-  // ── Clear all ──
-  function clearAll() {
-    if (!confirm('Delete ALL entries in Flyer Frame? This cannot be undone.')) return;
-    saveEntries([]);
-    renderHistory();
-    updateDashboard();
-    toast('All entries cleared.', 'error');
-  }
+  window.clearAll = async function() {
+    if (!confirm('Delete ALL Flyer Frame entries? This cannot be undone.')) return;
+    try {
+      const snap = await getDocs(flyerCol);
+      await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
+      toast('All entries cleared.','error');
+    } catch(e) { toast('Error: '+e.message,'error'); }
+  };
 
   // ── Draw Frame: Tabs ──
-  function showDrawTab(tab) {
+  window.showDrawTab = function(tab) {
     document.getElementById('dpanel-form').style.display    = tab === 'form'    ? 'block' : 'none';
     document.getElementById('dpanel-history').style.display = tab === 'history' ? 'block' : 'none';
     document.getElementById('dtab-form').classList.toggle('active',    tab === 'form');
     document.getElementById('dtab-history').classList.toggle('active', tab === 'history');
     if (tab === 'history') renderDrawHistory();
-  }
+  };
 
-  // ── Draw Frame: Save entry ──
-  function saveDrawEntry() {
-    const date = document.getElementById('d-date').value;
+  // ── Draw Frame: Save ──
+  window.saveDrawEntry = async function() {
+    const date  = document.getElementById('d-date').value;
     const shift = document.getElementById('d-shift').value;
     const op    = document.getElementById('d-operator').value.trim();
     if (!date)  { toast('Please select a date.', 'error'); return; }
     if (!shift) { toast('Please select a shift.', 'error'); return; }
     if (!op)    { toast('Please enter operator name.', 'error'); return; }
-
-    const entry = {
-      id: Date.now(), date, shift, operator: op,
-      p1: {
-        delivery:      document.getElementById('d1-delivery').value,
-        length:        document.getElementById('d1-length').value,
-        inputWeight:   document.getElementById('d1-input-weight').value,
-        draft:         document.getElementById('d1-draft').value,
-        outputWeight:  document.getElementById('d1-output-weight').value,
-        autoleveller:  document.getElementById('d1-autoleveller').checked
-      },
-      p2: {
-        delivery:      document.getElementById('d2-delivery').value,
-        length:        document.getElementById('d2-length').value,
-        inputWeight:   document.getElementById('d2-input-weight').value,
-        draft:         document.getElementById('d2-draft').value,
-        outputWeight:  document.getElementById('d2-output-weight').value,
-        autoleveller:  document.getElementById('d2-autoleveller').checked,
-        totalWeight:   document.getElementById('d2-total-weight').value
-      },
-      remarks: document.getElementById('d-remarks').value.trim(),
-      savedAt: new Date().toISOString()
-    };
-
-    const entries = loadDrawEntries();
-    entries.unshift(entry);
-    saveDrawEntries(entries);
-    toast('Draw Frame entry saved!', 'success');
-    clearDrawForm();
-    updateDashboard();
-  }
+    try {
+      await addDoc(drawCol, {
+        date, shift, operator: op,
+        p1: {
+          delivery:     document.getElementById('d1-delivery').value,
+          length:       document.getElementById('d1-length').value,
+          inputWeight:  document.getElementById('d1-input-weight').value,
+          draft:        document.getElementById('d1-draft').value,
+          outputWeight: document.getElementById('d1-output-weight').value,
+          autoleveller: document.getElementById('d1-autoleveller').checked
+        },
+        p2: {
+          delivery:     document.getElementById('d2-delivery').value,
+          length:       document.getElementById('d2-length').value,
+          inputWeight:  document.getElementById('d2-input-weight').value,
+          draft:        document.getElementById('d2-draft').value,
+          outputWeight: document.getElementById('d2-output-weight').value,
+          autoleveller: document.getElementById('d2-autoleveller').checked,
+          totalWeight:  document.getElementById('d2-total-weight').value
+        },
+        remarks:   document.getElementById('d-remarks').value.trim(),
+        createdAt: Date.now()
+      });
+      toast('Draw Frame entry saved!', 'success');
+      window.clearDrawForm();
+    } catch(e) { toast('Save failed: ' + e.message, 'error'); }
+  };
 
   // ── Draw Frame: Clear form ──
-  function clearDrawForm() {
+  window.clearDrawForm = function() {
     const today = new Date().toISOString().slice(0, 10);
     document.getElementById('d-date').value = today;
     ['d-shift','d-operator',
@@ -1089,107 +1079,98 @@
       .forEach(id => { document.getElementById(id).value = ''; });
     document.getElementById('d1-autoleveller').checked = false;
     document.getElementById('d2-autoleveller').checked = false;
-  }
+  };
 
   // ── Draw Frame: Render history ──
   function renderDrawHistory() {
-    const entries = loadDrawEntries();
-    const tbody   = document.getElementById('dhistory-tbody');
-    const empty   = document.getElementById('dhistory-empty');
-    const table   = document.getElementById('dhistory-table');
-
+    const tbody = document.getElementById('dhistory-tbody');
+    const empty = document.getElementById('dhistory-empty');
+    const table = document.getElementById('dhistory-table');
     tbody.innerHTML = '';
-    if (entries.length === 0) {
+    if (drawEntries.length === 0) {
       table.style.display = 'none'; empty.style.display = 'block';
-      document.getElementById('dclear-all-btn').style.display = 'none';
-      return;
+      document.getElementById('dclear-all-btn').style.display = 'none'; return;
     }
     table.style.display = ''; empty.style.display = 'none';
     document.getElementById('dclear-all-btn').style.display = '';
-
     const tick = v => v ? '<span style="color:var(--green);font-weight:700;">✓ On</span>' : '<span style="color:var(--gray-text);">Off</span>';
-
-    entries.forEach((e, i) => {
+    drawEntries.forEach((e, i) => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td style="color:var(--gray-text);font-weight:600;">${entries.length - i}</td>
+        <td style="color:var(--gray-text);font-weight:600;">${drawEntries.length - i}</td>
         <td style="white-space:nowrap;">${fmtDate(e.date)}</td>
         <td><span class="badge-shift badge-${e.shift}">${e.shift}</span></td>
         <td style="font-weight:600;">${esc(e.operator)}</td>
-        <td style="background:#f0f7fd;">${e.p1.delivery || '–'}</td>
-        <td style="background:#f0f7fd;">${e.p1.length || '–'}</td>
-        <td style="background:#f0f7fd;">${e.p1.inputWeight || '–'}</td>
-        <td style="background:#f0f7fd;">${e.p1.draft || '–'}</td>
-        <td style="background:#f0f7fd;font-weight:600;color:var(--blue);">${e.p1.outputWeight || '–'}</td>
-        <td style="background:#f0f7fd;">${tick(e.p1.autoleveller)}</td>
-        <td style="background:#f5fdf0;">${e.p2.delivery || '–'}</td>
-        <td style="background:#f5fdf0;">${e.p2.length || '–'}</td>
-        <td style="background:#f5fdf0;">${e.p2.inputWeight || '–'}</td>
-        <td style="background:#f5fdf0;">${e.p2.draft || '–'}</td>
-        <td style="background:#f5fdf0;font-weight:600;color:var(--blue);">${e.p2.outputWeight || '–'}</td>
-        <td style="background:#f5fdf0;">${tick(e.p2.autoleveller)}</td>
-        <td style="background:#f5fdf0;font-weight:700;color:var(--blue);">${e.p2.totalWeight || '–'}</td>
-        <td style="max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(e.remarks)}">${esc(e.remarks) || '–'}</td>
-        <td>
-          <button class="del-btn" onclick="deleteDrawEntry(${e.id})" title="Delete">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-          </button>
-        </td>`;
+        <td style="background:#f0f7fd;">${e.p1?.delivery||'–'}</td>
+        <td style="background:#f0f7fd;">${e.p1?.length||'–'}</td>
+        <td style="background:#f0f7fd;">${e.p1?.inputWeight||'–'}</td>
+        <td style="background:#f0f7fd;">${e.p1?.draft||'–'}</td>
+        <td style="background:#f0f7fd;font-weight:600;color:var(--blue);">${e.p1?.outputWeight||'–'}</td>
+        <td style="background:#f0f7fd;">${tick(e.p1?.autoleveller)}</td>
+        <td style="background:#f5fdf0;">${e.p2?.delivery||'–'}</td>
+        <td style="background:#f5fdf0;">${e.p2?.length||'–'}</td>
+        <td style="background:#f5fdf0;">${e.p2?.inputWeight||'–'}</td>
+        <td style="background:#f5fdf0;">${e.p2?.draft||'–'}</td>
+        <td style="background:#f5fdf0;font-weight:600;color:var(--blue);">${e.p2?.outputWeight||'–'}</td>
+        <td style="background:#f5fdf0;">${tick(e.p2?.autoleveller)}</td>
+        <td style="background:#f5fdf0;font-weight:700;color:var(--blue);">${e.p2?.totalWeight||'–'}</td>
+        <td style="max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(e.remarks)}">${esc(e.remarks)||'–'}</td>
+        <td><button class="del-btn" onclick="deleteDrawEntry('${e.id}')" title="Delete">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </button></td>`;
       tbody.appendChild(tr);
     });
   }
 
-  // ── Draw Frame: Delete / Clear ──
-  function deleteDrawEntry(id) {
+  window.deleteDrawEntry = async function(id) {
     if (!confirm('Delete this entry?')) return;
-    saveDrawEntries(loadDrawEntries().filter(e => e.id !== id));
-    renderDrawHistory(); updateDashboard();
-    toast('Entry deleted.', 'error');
-  }
-  function clearDrawAll() {
+    try { await deleteDoc(doc(db,'draw_logs',id)); toast('Entry deleted.','error'); }
+    catch(e) { toast('Delete failed: '+e.message,'error'); }
+  };
+
+  window.clearDrawAll = async function() {
     if (!confirm('Delete ALL Draw Frame entries? This cannot be undone.')) return;
-    saveDrawEntries([]);
-    renderDrawHistory(); updateDashboard();
-    toast('All Draw Frame entries cleared.', 'error');
-  }
+    try {
+      const snap = await getDocs(drawCol);
+      await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
+      toast('All Draw Frame entries cleared.','error');
+    } catch(e) { toast('Error: '+e.message,'error'); }
+  };
 
-  // ── Update dashboard stats ──
+  // ── Dashboard ──
   function updateDashboard() {
-    const fe = loadEntries();
-    const de = loadDrawEntries();
-    const today = new Date().toISOString().slice(0, 10);
-
-    const allEntries  = fe.length + de.length;
-    const todayCount  = fe.filter(e => e.date === today).length + de.filter(e => e.date === today).length;
-    const flyerProd   = fe.reduce((s, e) => s + (parseFloat(e.prodKg) || 0), 0);
-    const drawProd    = de.reduce((s, e) => s + (parseFloat(e.p2?.totalWeight) || 0), 0);
-
+    const today      = new Date().toISOString().slice(0, 10);
+    const allEntries = flyerEntries.length + drawEntries.length;
+    const todayCount = flyerEntries.filter(e=>e.date===today).length + drawEntries.filter(e=>e.date===today).length;
+    const flyerProd  = flyerEntries.reduce((s,e) => s+(parseFloat(e.prodKg)||0), 0);
+    const drawProd   = drawEntries.reduce((s,e)  => s+(parseFloat(e.p2?.totalWeight)||0), 0);
     document.getElementById('stat-total').textContent      = allEntries;
     document.getElementById('stat-today').textContent      = todayCount;
     document.getElementById('stat-flyer-prod').textContent = flyerProd.toFixed(1);
     document.getElementById('stat-draw-prod').textContent  = drawProd.toFixed(1);
-    document.getElementById('folder-flyer-count').textContent = fe.length + ' entr' + (fe.length === 1 ? 'y' : 'ies');
-    document.getElementById('folder-draw-count').textContent  = de.length + ' entr' + (de.length === 1 ? 'y' : 'ies');
+    document.getElementById('folder-flyer-count').textContent = flyerEntries.length+' entr'+(flyerEntries.length===1?'y':'ies');
+    document.getElementById('folder-draw-count').textContent  = drawEntries.length +' entr'+(drawEntries.length ===1?'y':'ies');
   }
 
-  // ── Sidebar (mobile) ──
-  function openSidebar()  {
+  // ── Sidebar ──
+  window.openSidebar = function() {
     document.getElementById('sidebar').classList.add('open');
     document.getElementById('sidebarBackdrop').classList.add('open');
-  }
-  function closeSidebar() {
+  };
+  window.closeSidebar = function() {
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('sidebarBackdrop').classList.remove('open');
-  }
+  };
+  function closeSidebar() { window.closeSidebar(); }
 
   // ── Toast ──
-  function toast(msg, type = 'success') {
+  function toast(msg, type='success') {
     const c = document.getElementById('toastContainer');
     const t = document.createElement('div');
-    t.className = 'toast toast-' + type;
+    t.className = 'toast toast-'+type;
     t.innerHTML = `<span>${msg}</span>`;
     c.appendChild(t);
-    setTimeout(() => t.remove(), 3000);
+    setTimeout(()=>t.remove(), 3500);
   }
 
   // ── Helpers ──
