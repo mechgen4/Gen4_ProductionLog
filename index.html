@@ -458,10 +458,21 @@
               </div>
             </div>
             <div class="stat-card">
-              <div class="stat-icon" style="background:#fff0e0;">⚙️</div>
+              <div class="stat-icon" style="background:#eafad1; overflow:hidden;">
+                <img src="flyer-photo.png" alt="Flyer" style="width:100%;height:100%;object-fit:cover;border-radius:9px;"/>
+              </div>
               <div>
-                <span class="stat-value" id="stat-prod">0</span>
-                <span class="stat-label">Total Production (kg)</span>
+                <span class="stat-value" id="stat-flyer-prod">0</span>
+                <span class="stat-label">Flyer Frame Production (kg)</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background:#d6eaf8; overflow:hidden;">
+                <img src="draw-photo.png" alt="Draw" style="width:100%;height:100%;object-fit:cover;border-radius:9px;"/>
+              </div>
+              <div>
+                <span class="stat-value" id="stat-draw-prod">0</span>
+                <span class="stat-label">Draw Frame Output (kg)</span>
               </div>
             </div>
           </div>
@@ -1136,13 +1147,16 @@
     const fe = loadEntries();
     const de = loadDrawEntries();
     const today = new Date().toISOString().slice(0, 10);
+
     const allEntries  = fe.length + de.length;
     const todayCount  = fe.filter(e => e.date === today).length + de.filter(e => e.date === today).length;
-    const totalProd   = fe.reduce((s, e) => s + (parseFloat(e.prodKg) || 0), 0);
+    const flyerProd   = fe.reduce((s, e) => s + (parseFloat(e.prodKg) || 0), 0);
+    const drawProd    = de.reduce((s, e) => s + (parseFloat(e.p2?.outputWeight) || parseFloat(e.p1?.outputWeight) || 0), 0);
 
-    document.getElementById('stat-total').textContent  = allEntries;
-    document.getElementById('stat-today').textContent  = todayCount;
-    document.getElementById('stat-prod').textContent   = totalProd.toFixed(1);
+    document.getElementById('stat-total').textContent      = allEntries;
+    document.getElementById('stat-today').textContent      = todayCount;
+    document.getElementById('stat-flyer-prod').textContent = flyerProd.toFixed(1);
+    document.getElementById('stat-draw-prod').textContent  = drawProd.toFixed(1);
     document.getElementById('folder-flyer-count').textContent = fe.length + ' entr' + (fe.length === 1 ? 'y' : 'ies');
     document.getElementById('folder-draw-count').textContent  = de.length + ' entr' + (de.length === 1 ? 'y' : 'ies');
   }
