@@ -262,6 +262,27 @@
       color: var(--gray-text); transition: all .12s;
     }
     .del-btn:hover { background: #fce8e6; color: var(--danger); }
+
+    /* ── Checkbox (Autoleveller) ── */
+    .check-wrap { display: flex; align-items: center; margin-top: 4px; }
+    .check-label {
+      display: flex; align-items: center; gap: 10px;
+      cursor: pointer; font-size: 14px; font-weight: 600; color: var(--dark-text);
+      user-select: none;
+    }
+    .check-label input[type="checkbox"] { display: none; }
+    .check-box {
+      width: 22px; height: 22px; border-radius: 6px;
+      border: 2px solid var(--gray-border); background: var(--white);
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s; flex-shrink: 0;
+    }
+    .check-label input:checked + .check-box {
+      background: var(--green); border-color: var(--green);
+    }
+    .check-label input:checked + .check-box::after {
+      content: '✓'; color: #fff; font-size: 13px; font-weight: 700;
+    }
     .empty-state {
       text-align: center; padding: 50px 20px; color: var(--gray-text); font-size: 14px;
       background: var(--white); border-radius: var(--radius); border: 1px solid var(--gray-border);
@@ -355,13 +376,14 @@
         </button>
       </div>
 
-      <!-- Placeholder folders (locked / coming soon) -->
-      <div class="folder-row" style="opacity:.45; cursor:not-allowed;" title="Coming soon">
-        <button class="folder-btn" disabled style="cursor:not-allowed;">
+      <div class="folder-row" id="nav-draw" onclick="showView('draw')">
+        <button class="folder-btn">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
-          Ring Frame
+          Draw Frame
         </button>
       </div>
+
+      <!-- Placeholder folders -->
       <div class="folder-row" style="opacity:.45; cursor:not-allowed;" title="Coming soon">
         <button class="folder-btn" disabled style="cursor:not-allowed;">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
@@ -409,7 +431,7 @@
             <div class="stat-card">
               <div class="stat-icon" style="background:#eafad1;">🗂️</div>
               <div>
-                <span class="stat-value" id="stat-folders">1</span>
+                <span class="stat-value" id="stat-folders">2</span>
                 <span class="stat-label">Active Folders</span>
               </div>
             </div>
@@ -443,10 +465,10 @@
               <div class="folder-card-name">Flyer Frame</div>
               <div class="folder-card-count" id="folder-flyer-count">0 entries</div>
             </div>
-            <div class="folder-card" style="opacity:.45; cursor:not-allowed;" title="Coming soon">
-              <div class="folder-card-icon" style="background:#d6eaf8;">🔘</div>
-              <div class="folder-card-name">Ring Frame</div>
-              <div class="folder-card-count">Coming soon</div>
+            <div class="folder-card" onclick="showView('draw')">
+              <div class="folder-card-icon" style="background:#d6eaf8;">📐</div>
+              <div class="folder-card-name">Draw Frame</div>
+              <div class="folder-card-count" id="folder-draw-count">0 entries</div>
             </div>
             <div class="folder-card" style="opacity:.45; cursor:not-allowed;" title="Coming soon">
               <div class="folder-card-icon" style="background:#fff0e0;">🌬️</div>
@@ -607,6 +629,208 @@
         </div>
       </div>
 
+      <!-- ═══════════════ DRAW FRAME VIEW ═══════════════ -->
+      <div class="view" id="view-draw">
+        <div class="page">
+          <div class="breadcrumb">
+            <a onclick="showView('dashboard')">🏠 Dashboard</a>
+            <span>›</span>
+            <span>📐 Draw Frame</span>
+          </div>
+
+          <div class="page-header">
+            <div>
+              <div class="page-title">📐 Draw Frame</div>
+              <div class="page-subtitle">Production Daily Log</div>
+            </div>
+            <button class="btn btn-primary" onclick="showDrawTab('form')">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New Entry
+            </button>
+          </div>
+
+          <div class="tab-bar">
+            <button class="tab-btn active" id="dtab-form" onclick="showDrawTab('form')">📝 New Entry</button>
+            <button class="tab-btn" id="dtab-history" onclick="showDrawTab('history')">📋 History</button>
+          </div>
+
+          <!-- ── New Entry Form ── -->
+          <div id="dpanel-form">
+
+            <div class="form-card">
+              <div class="form-card-title">📌 Entry Details</div>
+              <div class="form-row-meta">
+                <div class="form-group">
+                  <label>Date</label>
+                  <input type="date" id="d-date"/>
+                </div>
+                <div class="form-group">
+                  <label>Shift</label>
+                  <select id="d-shift">
+                    <option value="">-- Select Shift --</option>
+                    <option value="A">Shift A (Morning)</option>
+                    <option value="B">Shift B (Afternoon)</option>
+                    <option value="C">Shift C (Night)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Operator Name</label>
+                  <input type="text" id="d-operator" placeholder="Enter name"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section 1: First Pass -->
+            <div class="form-card">
+              <div class="form-card-title">
+                <span class="section-badge">1</span>
+                First Pass
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Delivery Mtr/min</label>
+                  <input type="number" id="d1-delivery" placeholder="e.g. 400" step="any"/>
+                  <span class="unit">m/min</span>
+                </div>
+                <div class="form-group">
+                  <label>Length</label>
+                  <input type="number" id="d1-length" placeholder="e.g. 200" step="any"/>
+                  <span class="unit">meters</span>
+                </div>
+                <div class="form-group">
+                  <label>Input Weight</label>
+                  <input type="number" id="d1-input-weight" placeholder="e.g. 50.5" step="any"/>
+                  <span class="unit">kg</span>
+                </div>
+                <div class="form-group">
+                  <label>Draft</label>
+                  <input type="number" id="d1-draft" placeholder="e.g. 6.5" step="any"/>
+                </div>
+                <div class="form-group">
+                  <label>Output Weight</label>
+                  <input type="number" id="d1-output-weight" placeholder="e.g. 48.0" step="any"/>
+                  <span class="unit">kg</span>
+                </div>
+                <div class="form-group">
+                  <label>Autoleveller</label>
+                  <div class="check-wrap">
+                    <label class="check-label">
+                      <input type="checkbox" id="d1-autoleveller"/>
+                      <span class="check-box"></span>
+                      On
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section 2: Second Pass -->
+            <div class="form-card">
+              <div class="form-card-title">
+                <span class="section-badge">2</span>
+                Second Pass
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Delivery Mtr/min</label>
+                  <input type="number" id="d2-delivery" placeholder="e.g. 400" step="any"/>
+                  <span class="unit">m/min</span>
+                </div>
+                <div class="form-group">
+                  <label>Length</label>
+                  <input type="number" id="d2-length" placeholder="e.g. 200" step="any"/>
+                  <span class="unit">meters</span>
+                </div>
+                <div class="form-group">
+                  <label>Input Weight</label>
+                  <input type="number" id="d2-input-weight" placeholder="e.g. 48.0" step="any"/>
+                  <span class="unit">kg</span>
+                </div>
+                <div class="form-group">
+                  <label>Draft</label>
+                  <input type="number" id="d2-draft" placeholder="e.g. 6.5" step="any"/>
+                </div>
+                <div class="form-group">
+                  <label>Output Weight</label>
+                  <input type="number" id="d2-output-weight" placeholder="e.g. 46.0" step="any"/>
+                  <span class="unit">kg</span>
+                </div>
+                <div class="form-group">
+                  <label>Autoleveller</label>
+                  <div class="check-wrap">
+                    <label class="check-label">
+                      <input type="checkbox" id="d2-autoleveller"/>
+                      <span class="check-box"></span>
+                      On
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-card">
+              <div class="form-card-title">📝 Remarks / Issues</div>
+              <div class="form-group">
+                <textarea id="d-remarks" rows="3" placeholder="Any stoppages, issues, or observations..."></textarea>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn btn-ghost" onclick="clearDrawForm()">Clear</button>
+              <button class="btn btn-primary" onclick="saveDrawEntry()">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                Save Entry
+              </button>
+            </div>
+          </div>
+
+          <!-- ── History Table ── -->
+          <div id="dpanel-history" style="display:none;">
+            <div class="page-header" style="margin-bottom:12px;">
+              <div class="section-title" style="margin:0;">All Entries</div>
+              <button class="btn btn-danger btn-sm" onclick="clearDrawAll()" id="dclear-all-btn" style="height:32px;padding:0 12px;font-size:12px;">🗑 Clear All</button>
+            </div>
+            <div class="table-wrap">
+              <table class="log-table" id="dhistory-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Date</th>
+                    <th>Shift</th>
+                    <th>Operator</th>
+                    <th colspan="5" style="text-align:center;background:#eaf3fb;">— First Pass —</th>
+                    <th colspan="5" style="text-align:center;background:#eafad1;">— Second Pass —</th>
+                    <th>Remarks</th>
+                    <th></th>
+                  </tr>
+                  <tr>
+                    <th></th><th></th><th></th><th></th>
+                    <th style="background:#eaf3fb;">Delivery (m/min)</th>
+                    <th style="background:#eaf3fb;">Length (m)</th>
+                    <th style="background:#eaf3fb;">Input Wt (kg)</th>
+                    <th style="background:#eaf3fb;">Draft</th>
+                    <th style="background:#eaf3fb;">Output Wt (kg)</th>
+                    <th style="background:#eaf3fb;">Autoleveller</th>
+                    <th style="background:#eafad1;">Delivery (m/min)</th>
+                    <th style="background:#eafad1;">Length (m)</th>
+                    <th style="background:#eafad1;">Input Wt (kg)</th>
+                    <th style="background:#eafad1;">Draft</th>
+                    <th style="background:#eafad1;">Output Wt (kg)</th>
+                    <th style="background:#eafad1;">Autoleveller</th>
+                    <th></th><th></th>
+                  </tr>
+                </thead>
+                <tbody id="dhistory-tbody"></tbody>
+              </table>
+            </div>
+            <div class="empty-state" id="dhistory-empty" style="display:none;">
+              No entries yet. Click <strong>New Entry</strong> to add your first log.
+            </div>
+          </div>
+
+        </div>
+      </div>
+
     </div><!-- /page-content -->
   </div><!-- /main-area -->
 </div><!-- /app-shell -->
@@ -615,8 +839,9 @@
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
-  // ── Storage key ──
-  const STORE_KEY = 'gen4_flyer_logs';
+  // ── Storage keys ──
+  const STORE_KEY  = 'gen4_flyer_logs';
+  const DSTORE_KEY = 'gen4_draw_logs';
 
   // ── Load entries from localStorage ──
   function loadEntries() {
@@ -627,10 +852,18 @@
     localStorage.setItem(STORE_KEY, JSON.stringify(arr));
   }
 
+  // ── Draw Frame storage ──
+  function loadDrawEntries() {
+    try { return JSON.parse(localStorage.getItem(DSTORE_KEY) || '[]'); }
+    catch { return []; }
+  }
+  function saveDrawEntries(arr) { localStorage.setItem(DSTORE_KEY, JSON.stringify(arr)); }
+
   // ── Set today's date on load ──
   window.addEventListener('DOMContentLoaded', () => {
     const today = new Date().toISOString().slice(0, 10);
     document.getElementById('f-date').value = today;
+    document.getElementById('d-date').value = today;
 
     // Topbar date
     document.getElementById('topbarDate').textContent =
@@ -647,6 +880,7 @@
     document.querySelectorAll('.sidebar-link, .folder-row').forEach(el => el.classList.remove('active', 'active-folder'));
     if (view === 'dashboard') document.getElementById('nav-dashboard').classList.add('active');
     if (view === 'flyer') { document.getElementById('nav-flyer').classList.add('active-folder'); renderHistory(); }
+    if (view === 'draw')  { document.getElementById('nav-draw').classList.add('active-folder');  renderDrawHistory(); }
 
     closeSidebar();
     updateDashboard();
@@ -768,17 +1002,141 @@
     toast('All entries cleared.', 'error');
   }
 
+  // ── Draw Frame: Tabs ──
+  function showDrawTab(tab) {
+    document.getElementById('dpanel-form').style.display    = tab === 'form'    ? 'block' : 'none';
+    document.getElementById('dpanel-history').style.display = tab === 'history' ? 'block' : 'none';
+    document.getElementById('dtab-form').classList.toggle('active',    tab === 'form');
+    document.getElementById('dtab-history').classList.toggle('active', tab === 'history');
+    if (tab === 'history') renderDrawHistory();
+  }
+
+  // ── Draw Frame: Save entry ──
+  function saveDrawEntry() {
+    const date = document.getElementById('d-date').value;
+    const shift = document.getElementById('d-shift').value;
+    const op    = document.getElementById('d-operator').value.trim();
+    if (!date)  { toast('Please select a date.', 'error'); return; }
+    if (!shift) { toast('Please select a shift.', 'error'); return; }
+    if (!op)    { toast('Please enter operator name.', 'error'); return; }
+
+    const entry = {
+      id: Date.now(), date, shift, operator: op,
+      p1: {
+        delivery:      document.getElementById('d1-delivery').value,
+        length:        document.getElementById('d1-length').value,
+        inputWeight:   document.getElementById('d1-input-weight').value,
+        draft:         document.getElementById('d1-draft').value,
+        outputWeight:  document.getElementById('d1-output-weight').value,
+        autoleveller:  document.getElementById('d1-autoleveller').checked
+      },
+      p2: {
+        delivery:      document.getElementById('d2-delivery').value,
+        length:        document.getElementById('d2-length').value,
+        inputWeight:   document.getElementById('d2-input-weight').value,
+        draft:         document.getElementById('d2-draft').value,
+        outputWeight:  document.getElementById('d2-output-weight').value,
+        autoleveller:  document.getElementById('d2-autoleveller').checked
+      },
+      remarks: document.getElementById('d-remarks').value.trim(),
+      savedAt: new Date().toISOString()
+    };
+
+    const entries = loadDrawEntries();
+    entries.unshift(entry);
+    saveDrawEntries(entries);
+    toast('Draw Frame entry saved!', 'success');
+    clearDrawForm();
+    updateDashboard();
+  }
+
+  // ── Draw Frame: Clear form ──
+  function clearDrawForm() {
+    const today = new Date().toISOString().slice(0, 10);
+    document.getElementById('d-date').value = today;
+    ['d-shift','d-operator',
+     'd1-delivery','d1-length','d1-input-weight','d1-draft','d1-output-weight',
+     'd2-delivery','d2-length','d2-input-weight','d2-draft','d2-output-weight','d-remarks']
+      .forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('d1-autoleveller').checked = false;
+    document.getElementById('d2-autoleveller').checked = false;
+  }
+
+  // ── Draw Frame: Render history ──
+  function renderDrawHistory() {
+    const entries = loadDrawEntries();
+    const tbody   = document.getElementById('dhistory-tbody');
+    const empty   = document.getElementById('dhistory-empty');
+    const table   = document.getElementById('dhistory-table');
+
+    tbody.innerHTML = '';
+    if (entries.length === 0) {
+      table.style.display = 'none'; empty.style.display = 'block';
+      document.getElementById('dclear-all-btn').style.display = 'none';
+      return;
+    }
+    table.style.display = ''; empty.style.display = 'none';
+    document.getElementById('dclear-all-btn').style.display = '';
+
+    const tick = v => v ? '<span style="color:var(--green);font-weight:700;">✓ On</span>' : '<span style="color:var(--gray-text);">Off</span>';
+
+    entries.forEach((e, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="color:var(--gray-text);font-weight:600;">${entries.length - i}</td>
+        <td style="white-space:nowrap;">${fmtDate(e.date)}</td>
+        <td><span class="badge-shift badge-${e.shift}">${e.shift}</span></td>
+        <td style="font-weight:600;">${esc(e.operator)}</td>
+        <td style="background:#f0f7fd;">${e.p1.delivery || '–'}</td>
+        <td style="background:#f0f7fd;">${e.p1.length || '–'}</td>
+        <td style="background:#f0f7fd;">${e.p1.inputWeight || '–'}</td>
+        <td style="background:#f0f7fd;">${e.p1.draft || '–'}</td>
+        <td style="background:#f0f7fd;font-weight:600;color:var(--blue);">${e.p1.outputWeight || '–'}</td>
+        <td style="background:#f0f7fd;">${tick(e.p1.autoleveller)}</td>
+        <td style="background:#f5fdf0;">${e.p2.delivery || '–'}</td>
+        <td style="background:#f5fdf0;">${e.p2.length || '–'}</td>
+        <td style="background:#f5fdf0;">${e.p2.inputWeight || '–'}</td>
+        <td style="background:#f5fdf0;">${e.p2.draft || '–'}</td>
+        <td style="background:#f5fdf0;font-weight:600;color:var(--blue);">${e.p2.outputWeight || '–'}</td>
+        <td style="background:#f5fdf0;">${tick(e.p2.autoleveller)}</td>
+        <td style="max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(e.remarks)}">${esc(e.remarks) || '–'}</td>
+        <td>
+          <button class="del-btn" onclick="deleteDrawEntry(${e.id})" title="Delete">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ── Draw Frame: Delete / Clear ──
+  function deleteDrawEntry(id) {
+    if (!confirm('Delete this entry?')) return;
+    saveDrawEntries(loadDrawEntries().filter(e => e.id !== id));
+    renderDrawHistory(); updateDashboard();
+    toast('Entry deleted.', 'error');
+  }
+  function clearDrawAll() {
+    if (!confirm('Delete ALL Draw Frame entries? This cannot be undone.')) return;
+    saveDrawEntries([]);
+    renderDrawHistory(); updateDashboard();
+    toast('All Draw Frame entries cleared.', 'error');
+  }
+
   // ── Update dashboard stats ──
   function updateDashboard() {
-    const entries = loadEntries();
-    const today   = new Date().toISOString().slice(0, 10);
-    const todayCount = entries.filter(e => e.date === today).length;
-    const totalProd  = entries.reduce((s, e) => s + (parseFloat(e.prodKg) || 0), 0);
+    const fe = loadEntries();
+    const de = loadDrawEntries();
+    const today = new Date().toISOString().slice(0, 10);
+    const allEntries  = fe.length + de.length;
+    const todayCount  = fe.filter(e => e.date === today).length + de.filter(e => e.date === today).length;
+    const totalProd   = fe.reduce((s, e) => s + (parseFloat(e.prodKg) || 0), 0);
 
-    document.getElementById('stat-total').textContent   = entries.length;
-    document.getElementById('stat-today').textContent   = todayCount;
-    document.getElementById('stat-prod').textContent    = totalProd.toFixed(1);
-    document.getElementById('folder-flyer-count').textContent = entries.length + ' entr' + (entries.length === 1 ? 'y' : 'ies');
+    document.getElementById('stat-total').textContent  = allEntries;
+    document.getElementById('stat-today').textContent  = todayCount;
+    document.getElementById('stat-prod').textContent   = totalProd.toFixed(1);
+    document.getElementById('folder-flyer-count').textContent = fe.length + ' entr' + (fe.length === 1 ? 'y' : 'ies');
+    document.getElementById('folder-draw-count').textContent  = de.length + ' entr' + (de.length === 1 ? 'y' : 'ies');
   }
 
   // ── Sidebar (mobile) ──
