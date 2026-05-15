@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gen4 Portal – Daily Log</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    /* ── Variables (exact Gen4 palette) ── */
+    :root {
+      --blue:          #1a5276;
+      --blue-light:    #2471a3;
+      --blue-lighter:  #d6eaf8;
+      --green:         #7dba3a;
+      --green-light:   #a9d46e;
+      --green-lighter: #eafad1;
+      --white:         #ffffff;
+      --gray-bg:       #f4f6f8;
+      --gray-border:   #dde3ea;
+      --gray-text:     #5d6b7a;
+      --dark-text:     #1a2733;
+      --danger:        #c0392b;
+      --radius:        10px;
+      --font:          'Outfit', system-ui, sans-serif;
+      --sidebar-w:     240px;
+      --topbar-h:      60px;
+      --shadow-sm:     0 1px 3px rgba(0,0,0,.07), 0 1px 8px rgba(0,0,0,.04);
+      --shadow-md:     0 4px 16px rgba(0,0,0,.10);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: var(--gray-bg); }
+    body { font-family: var(--font); color: var(--dark-text); font-size: 14px; line-height: 1.5; }
+    a { color: inherit; text-decoration: none; }
+    button { cursor: pointer; border: none; background: none; font: inherit; }
+    input, select, textarea {
+      font: inherit; width: 100%; padding: 9px 12px;
+      border: 1.5px solid var(--gray-border); border-radius: 8px;
+      background: var(--white); color: var(--dark-text); outline: none; transition: border-color .15s;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--green); }
+
+    /* ── App shell ── */
+    .app-shell { display: flex; height: 100vh; overflow: hidden; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar-w); background: var(--blue);
+      display: flex; flex-direction: column; height: 100vh;
+      overflow-y: auto; flex-shrink: 0; z-index: 200; transition: width .25s ease;
+    }
+    .sidebar-header {
+      padding: 20px 16px 14px; border-bottom: 1px solid rgba(255,255,255,.12);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .logo-circle {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: var(--green); display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 14px; color: #fff; flex-shrink: 0;
+    }
+    .sidebar-brand-name { font-size: 15px; font-weight: 700; color: #fff; line-height: 1.2; }
+    .sidebar-brand-name span { color: var(--green); }
+    .sidebar-tagline { font-size: 9.5px; color: var(--green-light); letter-spacing: .5px; margin-top: 2px; text-transform: uppercase; }
+
+    .sidebar-nav { padding: 10px; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+    .sidebar-section-label {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+      color: rgba(255,255,255,.38); padding: 10px 10px 4px;
+    }
+    .sidebar-link {
+      display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+      border-radius: 8px; color: rgba(255,255,255,.75); font-size: 13.5px;
+      font-weight: 500; transition: all .15s; width: 100%; text-align: left;
+    }
+    .sidebar-link:hover { background: rgba(255,255,255,.10); color: #fff; }
+    .sidebar-link.active { background: var(--green); color: #fff; }
+    .sidebar-link svg { flex-shrink: 0; }
+
+    /* Folder item */
+    .folder-row {
+      display: flex; align-items: center; border-radius: 8px;
+      transition: background .15s; cursor: pointer;
+    }
+    .folder-row:hover { background: rgba(255,255,255,.08); }
+    .folder-row.active-folder { background: rgba(255,255,255,.12); }
+    .folder-btn {
+      display: flex; align-items: center; gap: 10px; flex: 1;
+      padding: 9px 12px; color: rgba(255,255,255,.75); font-size: 13.5px;
+      font-weight: 500; transition: color .15s; text-align: left;
+    }
+    .folder-row:hover .folder-btn,
+    .folder-row.active-folder .folder-btn { color: #fff; }
+
+    .sidebar-footer {
+      padding: 14px 16px; border-top: 1px solid rgba(255,255,255,.12);
+    }
+    .user-chip { display: flex; align-items: center; gap: 10px; }
+    .user-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--green); display: flex; align-items: center;
+      justify-content: center; font-weight: 700; font-size: 13px; color: #fff; flex-shrink: 0;
+    }
+    .user-name { font-size: 13px; color: rgba(255,255,255,.85); font-weight: 500; }
+    .user-role { font-size: 11px; color: rgba(255,255,255,.42); }
+
+    /* ── Main area ── */
+    .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--gray-bg); }
+
+    /* ── Topbar ── */
+    .topbar {
+      height: var(--topbar-h); background: var(--white);
+      border-bottom: 1px solid var(--gray-border);
+      display: flex; align-items: center; gap: 14px;
+      padding: 0 24px; flex-shrink: 0; box-shadow: var(--shadow-sm);
+    }
+    .topbar-company { font-size: 16px; font-weight: 700; color: var(--blue); flex: 1; }
+    .topbar-date { font-size: 12px; color: var(--gray-text); }
+    .topbar-menu-btn {
+      color: var(--blue); padding: 6px; border-radius: 6px;
+      display: flex; display: none;
+    }
+
+    /* ── Page content ── */
+    .page-content { flex: 1; overflow-y: auto; background: var(--gray-bg); }
+    .page { padding: 24px 28px; max-width: 1200px; }
+    .page-title { font-size: 20px; font-weight: 700; color: var(--blue); margin-bottom: 6px; }
+    .page-subtitle { font-size: 13px; color: var(--gray-text); margin-bottom: 20px; }
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px; flex-wrap: wrap; gap: 10px;
+    }
+
+    /* ── Dashboard cards ── */
+    .stats-row {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(185px,1fr));
+      gap: 12px; margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--white); border: 1px solid var(--gray-border);
+      border-radius: var(--radius); padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow-sm);
+    }
+    .stat-icon {
+      width: 42px; height: 42px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;
+    }
+    .stat-value { display: block; font-size: 22px; font-weight: 700; color: var(--blue); }
+    .stat-label { display: block; font-size: 11px; color: var(--gray-text); font-weight: 500; margin-top: 1px; }
+
+    /* ── Folder grid ── */
+    .folder-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(148px,1fr)); gap: 12px;
+    }
+    .folder-card {
+      background: var(--white); border: 1.5px solid var(--gray-border);
+      border-radius: var(--radius); padding: 18px 14px; text-align: center;
+      cursor: pointer; transition: all .15s;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      box-shadow: var(--shadow-sm);
+    }
+    .folder-card:hover {
+      border-color: var(--green); background: var(--green-lighter);
+      transform: translateY(-2px); box-shadow: var(--shadow-md);
+    }
+    .folder-card-icon {
+      width: 48px; height: 48px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 24px;
+    }
+    .folder-card-name { font-size: 13px; font-weight: 600; color: var(--blue); }
+    .folder-card-count { font-size: 11px; color: var(--gray-text); }
+
+    /* ── Tabs ── */
+    .tab-bar {
+      display: flex; flex-wrap: wrap; gap: 3px;
+      background: var(--gray-bg); border-radius: 10px;
+      padding: 3px; width: fit-content; margin-bottom: 16px;
+    }
+    .tab-btn {
+      padding: 7px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      color: var(--gray-text); cursor: pointer; transition: all .12s; font-family: var(--font);
+    }
+    .tab-btn:hover { color: var(--blue); }
+    .tab-btn.active { background: var(--white); color: var(--blue); box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+
+    /* ── Form card ── */
+    .form-card {
+      background: var(--white); border: 1px solid var(--gray-border);
+      border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-sm); margin-bottom: 20px;
+    }
+    .form-card-title {
+      font-size: 15px; font-weight: 700; color: var(--blue);
+      margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--gray-border);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-badge {
+      background: var(--blue-lighter); color: var(--blue);
+      font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+    }
+    .form-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 14px;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group label {
+      font-size: 11px; font-weight: 700; color: var(--gray-text);
+      text-transform: uppercase; letter-spacing: .4px;
+    }
+    .form-group input, .form-group select {
+      height: 38px; padding: 0 12px;
+    }
+    .form-group .unit {
+      font-size: 10px; color: var(--gray-text); margin-top: 2px;
+    }
+    .form-row-meta { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 0 18px; height: 38px; border-radius: 8px;
+      font-size: 13px; font-weight: 600; transition: all .15s;
+      font-family: var(--font); cursor: pointer;
+    }
+    .btn-primary { background: var(--green); color: #fff; border: none; }
+    .btn-primary:hover { background: var(--green-light); }
+    .btn-outline { background: transparent; color: var(--blue); border: 1.5px solid var(--blue); }
+    .btn-outline:hover { background: var(--blue); color: #fff; }
+    .btn-ghost { background: none; border: 1px solid var(--gray-border); color: var(--gray-text); }
+    .btn-ghost:hover { background: var(--gray-bg); }
+    .btn-danger { background: #fce8e6; color: var(--danger); border: none; }
+    .btn-danger:hover { background: #f9d0cc; }
+    .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+    /* ── Table ── */
+    .section-title { font-size: 14px; font-weight: 700; color: var(--blue); margin: 24px 0 12px; }
+    .table-wrap { overflow-x: auto; border-radius: var(--radius); }
+    .log-table {
+      width: 100%; border-collapse: collapse; background: var(--white);
+      border-radius: var(--radius); overflow: hidden;
+      box-shadow: var(--shadow-sm); border: 1px solid var(--gray-border);
+    }
+    .log-table th {
+      text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .6px; color: var(--gray-text);
+      background: var(--gray-bg); border-bottom: 1px solid var(--gray-border); white-space: nowrap;
+    }
+    .log-table td {
+      padding: 10px 14px; border-bottom: 1px solid var(--gray-border);
+      vertical-align: middle; font-size: 13px;
+    }
+    .log-table tr:last-child td { border-bottom: none; }
+    .log-table tr:hover td { background: #fafbfc; }
+    .badge-shift {
+      display: inline-flex; align-items: center; padding: 2px 10px;
+      border-radius: 20px; font-size: 11px; font-weight: 600;
+    }
+    .badge-A { background: var(--blue-lighter); color: var(--blue); }
+    .badge-B { background: var(--green-lighter); color: #3a6a12; }
+    .badge-C { background: #fff0e0; color: #c4600a; }
+    .del-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px; border-radius: 6px;
+      color: var(--gray-text); transition: all .12s;
+    }
+    .del-btn:hover { background: #fce8e6; color: var(--danger); }
+    .empty-state {
+      text-align: center; padding: 50px 20px; color: var(--gray-text); font-size: 14px;
+      background: var(--white); border-radius: var(--radius); border: 1px solid var(--gray-border);
+    }
+
+    /* ── Toast ── */
+    .toast-container {
+      position: fixed; bottom: 22px; right: 22px;
+      display: flex; flex-direction: column; gap: 8px; z-index: 1000;
+    }
+    .toast {
+      display: flex; align-items: center; gap: 10px; padding: 11px 16px;
+      border-radius: 10px; font-size: 13.5px; font-weight: 500;
+      box-shadow: var(--shadow-md); min-width: 220px;
+      animation: slide-in .22s ease;
+    }
+    .toast-success { background: var(--green); color: #fff; }
+    .toast-error { background: var(--danger); color: #fff; }
+    @keyframes slide-in { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* ── Pages (visibility) ── */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ── Breadcrumb ── */
+    .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--gray-text); margin-bottom: 16px; }
+    .breadcrumb a { color: var(--blue); font-weight: 600; cursor: pointer; }
+    .breadcrumb a:hover { text-decoration: underline; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .sidebar { position: fixed; top: 0; left: 0; bottom: 0; transform: translateX(-100%); transition: transform .25s; }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-backdrop { display: block !important; }
+      .topbar-menu-btn { display: flex !important; }
+      .page { padding: 16px; }
+      .form-row-meta { grid-template-columns: 1fr 1fr; }
+      .form-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 480px) {
+      .form-row-meta { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+    .sidebar-backdrop {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.5); z-index: 190;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-circle">G4</div>
+      <div>
+        <div class="sidebar-brand-name">Gen<span>4</span> Portal</div>
+        <div class="sidebar-tagline">Daily Log System</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="sidebar-section-label">Main</div>
+
+      <button class="sidebar-link active" id="nav-dashboard" onclick="showView('dashboard')">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </button>
+
+      <div class="sidebar-section-label">Folders</div>
+
+      <div class="folder-row" id="nav-flyer" onclick="showView('flyer')">
+        <button class="folder-btn">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+          Flyer Frame
+        </button>
+      </div>
+
+      <!-- Placeholder folders (locked / coming soon) -->
+      <div class="folder-row" style="opacity:.45; cursor:not-allowed;" title="Coming soon">
+        <button class="folder-btn" disabled style="cursor:not-allowed;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+          Ring Frame
+        </button>
+      </div>
+      <div class="folder-row" style="opacity:.45; cursor:not-allowed;" title="Coming soon">
+        <button class="folder-btn" disabled style="cursor:not-allowed;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+          Blow Room
+        </button>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar">G4</div>
+        <div>
+          <div class="user-name">Gen4 Team</div>
+          <div class="user-role">Production</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Sidebar backdrop (mobile) -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebar()"></div>
+
+  <!-- ── Main area ── -->
+  <div class="main-area">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <button class="topbar-menu-btn" onclick="openSidebar()">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="topbar-company">Gen4 Portal &mdash; Daily Log</div>
+      <div class="topbar-date" id="topbarDate"></div>
+    </header>
+
+    <!-- Page content -->
+    <div class="page-content">
+
+      <!-- ═══════════════ DASHBOARD VIEW ═══════════════ -->
+      <div class="view active" id="view-dashboard">
+        <div class="page">
+          <div class="page-title">Dashboard</div>
+          <div class="page-subtitle">Overview of today's production logs</div>
+
+          <div class="stats-row">
+            <div class="stat-card">
+              <div class="stat-icon" style="background:#eafad1;">🗂️</div>
+              <div>
+                <span class="stat-value" id="stat-folders">1</span>
+                <span class="stat-label">Active Folders</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background:#d6eaf8;">📋</div>
+              <div>
+                <span class="stat-value" id="stat-total">0</span>
+                <span class="stat-label">Total Entries</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background:#eafad1;">📅</div>
+              <div>
+                <span class="stat-value" id="stat-today">0</span>
+                <span class="stat-label">Today's Entries</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon" style="background:#fff0e0;">⚙️</div>
+              <div>
+                <span class="stat-value" id="stat-prod">0</span>
+                <span class="stat-label">Total Production (kg)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">📁 Folders</div>
+          <div class="folder-grid">
+            <div class="folder-card" onclick="showView('flyer')">
+              <div class="folder-card-icon" style="background:#eafad1;">🧵</div>
+              <div class="folder-card-name">Flyer Frame</div>
+              <div class="folder-card-count" id="folder-flyer-count">0 entries</div>
+            </div>
+            <div class="folder-card" style="opacity:.45; cursor:not-allowed;" title="Coming soon">
+              <div class="folder-card-icon" style="background:#d6eaf8;">🔘</div>
+              <div class="folder-card-name">Ring Frame</div>
+              <div class="folder-card-count">Coming soon</div>
+            </div>
+            <div class="folder-card" style="opacity:.45; cursor:not-allowed;" title="Coming soon">
+              <div class="folder-card-icon" style="background:#fff0e0;">🌬️</div>
+              <div class="folder-card-name">Blow Room</div>
+              <div class="folder-card-count">Coming soon</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════ FLYER FRAME VIEW ═══════════════ -->
+      <div class="view" id="view-flyer">
+        <div class="page">
+          <div class="breadcrumb">
+            <a onclick="showView('dashboard')">🏠 Dashboard</a>
+            <span>›</span>
+            <span>🧵 Flyer Frame</span>
+          </div>
+
+          <div class="page-header">
+            <div>
+              <div class="page-title">🧵 Flyer Frame</div>
+              <div class="page-subtitle">Production / Testing Daily Log</div>
+            </div>
+            <button class="btn btn-primary" onclick="showTab('form')">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New Entry
+            </button>
+          </div>
+
+          <!-- Tabs -->
+          <div class="tab-bar">
+            <button class="tab-btn active" id="tab-form" onclick="showTab('form')">📝 New Entry</button>
+            <button class="tab-btn" id="tab-history" onclick="showTab('history')">📋 History</button>
+          </div>
+
+          <!-- ── New Entry Form ── -->
+          <div id="panel-form">
+
+            <!-- Meta info -->
+            <div class="form-card">
+              <div class="form-card-title">
+                📌 Entry Details
+              </div>
+              <div class="form-row-meta">
+                <div class="form-group">
+                  <label>Date</label>
+                  <input type="date" id="f-date"/>
+                </div>
+                <div class="form-group">
+                  <label>Shift</label>
+                  <select id="f-shift">
+                    <option value="">-- Select Shift --</option>
+                    <option value="A">Shift A (Morning)</option>
+                    <option value="B">Shift B (Afternoon)</option>
+                    <option value="C">Shift C (Night)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Operator Name</label>
+                  <input type="text" id="f-operator" placeholder="Enter name"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section 1: Production -->
+            <div class="form-card">
+              <div class="form-card-title">
+                <span class="section-badge">1</span>
+                Production
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>1.1 &nbsp;Flyer Speed</label>
+                  <input type="number" id="f-flyer-speed" placeholder="e.g. 1200" step="any"/>
+                  <span class="unit">RPM</span>
+                </div>
+                <div class="form-group">
+                  <label>1.2 &nbsp;TPI</label>
+                  <input type="number" id="f-tpi" placeholder="e.g. 2.5" step="any"/>
+                  <span class="unit">Twists Per Inch</span>
+                </div>
+                <div class="form-group">
+                  <label>Hank Time</label>
+                  <input type="text" id="f-hank-time" placeholder="e.g. 00:45"/>
+                  <span class="unit">HH:MM</span>
+                </div>
+                <div class="form-group">
+                  <label>No. of Spindles</label>
+                  <input type="number" id="f-spindles" placeholder="e.g. 96" step="1"/>
+                </div>
+                <div class="form-group">
+                  <label>Draft</label>
+                  <input type="number" id="f-draft" placeholder="e.g. 8.5" step="any"/>
+                </div>
+                <div class="form-group">
+                  <label>Production (kg)</label>
+                  <input type="number" id="f-prod-kg" placeholder="e.g. 150.5" step="any"/>
+                  <span class="unit">Kilograms</span>
+                </div>
+                <div class="form-group">
+                  <label>No. of Layers</label>
+                  <input type="number" id="f-layers" placeholder="e.g. 4" step="1"/>
+                </div>
+              </div>
+            </div>
+
+            <!-- Remarks -->
+            <div class="form-card">
+              <div class="form-card-title">📝 Remarks / Issues</div>
+              <div class="form-group">
+                <textarea id="f-remarks" rows="3" placeholder="Any stoppages, issues, or observations..."></textarea>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn btn-ghost" onclick="clearForm()">Clear</button>
+              <button class="btn btn-primary" onclick="saveEntry()">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                Save Entry
+              </button>
+            </div>
+          </div>
+
+          <!-- ── History Table ── -->
+          <div id="panel-history" style="display:none;">
+            <div class="page-header" style="margin-bottom:12px;">
+              <div class="section-title" style="margin:0;">All Entries</div>
+              <button class="btn btn-danger btn-sm" onclick="clearAll()" id="clear-all-btn" style="height:32px;padding:0 12px;font-size:12px;">🗑 Clear All</button>
+            </div>
+            <div class="table-wrap">
+              <table class="log-table" id="history-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Date</th>
+                    <th>Shift</th>
+                    <th>Operator</th>
+                    <th>Flyer Speed (RPM)</th>
+                    <th>TPI</th>
+                    <th>Hank Time</th>
+                    <th>No. of Spindles</th>
+                    <th>Draft</th>
+                    <th>Production (kg)</th>
+                    <th>No. of Layers</th>
+                    <th>Remarks</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="history-tbody"></tbody>
+              </table>
+            </div>
+            <div class="empty-state" id="history-empty" style="display:none;">
+              No entries yet. Click <strong>New Entry</strong> to add your first log.
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /page-content -->
+  </div><!-- /main-area -->
+</div><!-- /app-shell -->
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+  // ── Storage key ──
+  const STORE_KEY = 'gen4_flyer_logs';
+
+  // ── Load entries from localStorage ──
+  function loadEntries() {
+    try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); }
+    catch { return []; }
+  }
+  function saveEntries(arr) {
+    localStorage.setItem(STORE_KEY, JSON.stringify(arr));
+  }
+
+  // ── Set today's date on load ──
+  window.addEventListener('DOMContentLoaded', () => {
+    const today = new Date().toISOString().slice(0, 10);
+    document.getElementById('f-date').value = today;
+
+    // Topbar date
+    document.getElementById('topbarDate').textContent =
+      new Date().toLocaleDateString('en-IN', { weekday:'short', day:'2-digit', month:'short', year:'numeric' });
+
+    updateDashboard();
+  });
+
+  // ── Navigation ──
+  function showView(view) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + view).classList.add('active');
+
+    document.querySelectorAll('.sidebar-link, .folder-row').forEach(el => el.classList.remove('active', 'active-folder'));
+    if (view === 'dashboard') document.getElementById('nav-dashboard').classList.add('active');
+    if (view === 'flyer') { document.getElementById('nav-flyer').classList.add('active-folder'); renderHistory(); }
+
+    closeSidebar();
+    updateDashboard();
+  }
+
+  // ── Tabs ──
+  function showTab(tab) {
+    document.getElementById('panel-form').style.display    = tab === 'form'    ? 'block' : 'none';
+    document.getElementById('panel-history').style.display = tab === 'history' ? 'block' : 'none';
+    document.getElementById('tab-form').classList.toggle('active',    tab === 'form');
+    document.getElementById('tab-history').classList.toggle('active', tab === 'history');
+    if (tab === 'history') renderHistory();
+  }
+
+  // ── Save entry ──
+  function saveEntry() {
+    const date    = document.getElementById('f-date').value;
+    const shift   = document.getElementById('f-shift').value;
+    const op      = document.getElementById('f-operator').value.trim();
+    const speed   = document.getElementById('f-flyer-speed').value;
+    const tpi     = document.getElementById('f-tpi').value;
+    const hank    = document.getElementById('f-hank-time').value.trim();
+    const spin    = document.getElementById('f-spindles').value;
+    const draft   = document.getElementById('f-draft').value;
+    const prodkg  = document.getElementById('f-prod-kg').value;
+    const layers  = document.getElementById('f-layers').value;
+    const remarks = document.getElementById('f-remarks').value.trim();
+
+    if (!date) { toast('Please select a date.', 'error'); return; }
+    if (!shift) { toast('Please select a shift.', 'error'); return; }
+    if (!op) { toast('Please enter operator name.', 'error'); return; }
+
+    const entry = {
+      id: Date.now(), date, shift, operator: op,
+      flyerSpeed: speed, tpi, hankTime: hank,
+      spindles: spin, draft, prodKg: prodkg, layers, remarks,
+      savedAt: new Date().toISOString()
+    };
+
+    const entries = loadEntries();
+    entries.unshift(entry);
+    saveEntries(entries);
+
+    toast('Entry saved successfully!', 'success');
+    clearForm();
+    updateDashboard();
+  }
+
+  // ── Clear form ──
+  function clearForm() {
+    const today = new Date().toISOString().slice(0, 10);
+    document.getElementById('f-date').value = today;
+    ['f-shift','f-operator','f-flyer-speed','f-tpi','f-hank-time',
+     'f-spindles','f-draft','f-prod-kg','f-layers','f-remarks']
+      .forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('f-shift').value = '';
+  }
+
+  // ── Render history ──
+  function renderHistory() {
+    const entries = loadEntries();
+    const tbody   = document.getElementById('history-tbody');
+    const empty   = document.getElementById('history-empty');
+    const table   = document.getElementById('history-table');
+
+    tbody.innerHTML = '';
+
+    if (entries.length === 0) {
+      table.style.display = 'none';
+      empty.style.display = 'block';
+      document.getElementById('clear-all-btn').style.display = 'none';
+      return;
+    }
+
+    table.style.display = '';
+    empty.style.display = 'none';
+    document.getElementById('clear-all-btn').style.display = '';
+
+    entries.forEach((e, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="color:var(--gray-text);font-weight:600;">${entries.length - i}</td>
+        <td style="white-space:nowrap;">${fmtDate(e.date)}</td>
+        <td><span class="badge-shift badge-${e.shift}">${e.shift}</span></td>
+        <td style="font-weight:600;">${esc(e.operator)}</td>
+        <td>${e.flyerSpeed || '–'}</td>
+        <td>${e.tpi || '–'}</td>
+        <td>${e.hankTime || '–'}</td>
+        <td>${e.spindles || '–'}</td>
+        <td>${e.draft || '–'}</td>
+        <td style="font-weight:600;color:var(--blue);">${e.prodKg || '–'}</td>
+        <td>${e.layers || '–'}</td>
+        <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(e.remarks)}">${esc(e.remarks) || '–'}</td>
+        <td>
+          <button class="del-btn" onclick="deleteEntry(${e.id})" title="Delete">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          </button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // ── Delete entry ──
+  function deleteEntry(id) {
+    if (!confirm('Delete this entry?')) return;
+    const entries = loadEntries().filter(e => e.id !== id);
+    saveEntries(entries);
+    renderHistory();
+    updateDashboard();
+    toast('Entry deleted.', 'error');
+  }
+
+  // ── Clear all ──
+  function clearAll() {
+    if (!confirm('Delete ALL entries in Flyer Frame? This cannot be undone.')) return;
+    saveEntries([]);
+    renderHistory();
+    updateDashboard();
+    toast('All entries cleared.', 'error');
+  }
+
+  // ── Update dashboard stats ──
+  function updateDashboard() {
+    const entries = loadEntries();
+    const today   = new Date().toISOString().slice(0, 10);
+    const todayCount = entries.filter(e => e.date === today).length;
+    const totalProd  = entries.reduce((s, e) => s + (parseFloat(e.prodKg) || 0), 0);
+
+    document.getElementById('stat-total').textContent   = entries.length;
+    document.getElementById('stat-today').textContent   = todayCount;
+    document.getElementById('stat-prod').textContent    = totalProd.toFixed(1);
+    document.getElementById('folder-flyer-count').textContent = entries.length + ' entr' + (entries.length === 1 ? 'y' : 'ies');
+  }
+
+  // ── Sidebar (mobile) ──
+  function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebarBackdrop').style.display='block'; }
+  function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarBackdrop').style.display='none'; }
+
+  // ── Toast ──
+  function toast(msg, type = 'success') {
+    const c = document.getElementById('toastContainer');
+    const t = document.createElement('div');
+    t.className = 'toast toast-' + type;
+    t.innerHTML = `<span>${msg}</span>`;
+    c.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+  }
+
+  // ── Helpers ──
+  function fmtDate(d) {
+    if (!d) return '–';
+    const [y,m,day] = d.split('-');
+    return `${day}/${m}/${y}`;
+  }
+  function esc(s) {
+    if (!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+</script>
+
+</body>
+</html>
