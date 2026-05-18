@@ -316,6 +316,17 @@
       background: var(--white); border-radius: var(--radius); border: 1px solid var(--gray-border);
     }
 
+    /* ── Recovery Banner ── */
+    .recovery-banner {
+      display: none; align-items: center; gap: 12px; flex-wrap: wrap;
+      background: #fff8e1; border-bottom: 2px solid #f9a825;
+      padding: 12px 24px; z-index: 100;
+    }
+    .recovery-banner-text { flex: 1; font-size: 13px; color: #5d4037; }
+    .recovery-banner-text strong { color: #e65100; font-size: 14px; }
+    .btn-recover { background: #f9a825; color: #fff; border: none; font-weight: 700; }
+    .btn-recover:hover { background: #f57f17; }
+
     /* ── Toast ── */
     .toast-container {
       position: fixed; bottom: 22px; right: 22px;
@@ -445,6 +456,19 @@
       <div class="topbar-company">Gen4 Portal &mdash; Daily Log</div>
       <div class="topbar-date" id="topbarDate"></div>
     </header>
+
+    <!-- Recovery Banner -->
+    <div class="recovery-banner" id="recovery-banner">
+      <span style="font-size:22px;">⚠️</span>
+      <div class="recovery-banner-text">
+        <strong>Old data found!</strong>
+        &nbsp;We found <span id="recovery-count"></span> saved locally in this browser from before the cloud upgrade.
+      </div>
+      <button class="btn btn-recover" onclick="recoverData()">
+        ☁️ Recover to Cloud
+      </button>
+      <button class="btn btn-ghost" onclick="document.getElementById('recovery-banner').style.display='none'">Dismiss</button>
+    </div>
 
     <!-- Page content -->
     <div class="page-content">
@@ -915,6 +939,52 @@
     localStorage.setItem(STORE_KEY, JSON.stringify(arr));
   }
 
+  // ── Data Recovery: localStorage → Firebase ──
+  function checkLocalData() {
+    try {
+      const flyer = JSON.parse(localStorage.getItem('gen4_flyer_logs') || '[]');
+      const draw  = JSON.parse(localStorage.getItem('gen4_draw_logs')  || '[]');
+      const total = flyer.length + draw.length;
+      if (total === 0) return;
+      document.getElementById('recovery-count').textContent =
+        total + ' entr' + (total === 1 ? 'y' : 'ies');
+      document.getElementById('recovery-banner').style.display = 'flex';
+    } catch(e) {}
+  }
+
+  window.recoverData = async function() {
+    try {
+      const flyer = JSON.parse(localStorage.getItem('gen4_flyer_logs') || '[]');
+      const draw  = JSON.parse(localStorage.getItem('gen4_draw_logs')  || '[]');
+      let count = 0;
+      for (const e of flyer) {
+        await addDoc(flyerCol, {
+          date: e.date, shift: e.shift, operator: e.operator,
+          flyerSpeed: e.flyerSpeed, tpi: e.tpi, hankTime: e.hankTime,
+          spindles: e.spindles, draft: e.draft, prodKg: e.prodKg,
+          layers: e.layers, remarks: e.remarks || '',
+          createdAt: e.id || Date.now()
+        });
+        count++;
+      }
+      for (const e of draw) {
+        await addDoc(drawCol, {
+          date: e.date, shift: e.shift, operator: e.operator,
+          p1: e.p1 || {}, p2: e.p2 || {},
+          remarks: e.remarks || '',
+          createdAt: e.id || Date.now()
+        });
+        count++;
+      }
+      localStorage.removeItem('gen4_flyer_logs');
+      localStorage.removeItem('gen4_draw_logs');
+      document.getElementById('recovery-banner').style.display = 'none';
+      toast('✅ ' + count + ' entr' + (count === 1 ? 'y' : 'ies') + ' recovered to cloud!', 'success');
+    } catch(e) {
+      toast('Recovery failed: ' + e.message, 'error');
+    }
+  };
+
   // ── Start real-time listeners on load ──
   document.addEventListener('DOMContentLoaded', () => {
     const today = new Date().toISOString().slice(0, 10);
@@ -922,6 +992,8 @@
     document.getElementById('d-date').value = today;
     document.getElementById('topbarDate').textContent =
       new Date().toLocaleDateString('en-IN', { weekday:'short', day:'2-digit', month:'short', year:'numeric' });
+
+    checkLocalData();
 
     // Flyer listener
     onSnapshot(query(flyerCol, orderBy('createdAt','desc')), snap => {
