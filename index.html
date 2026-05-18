@@ -831,7 +831,7 @@
                 <div class="form-group" style="border:2px solid var(--green);border-radius:10px;padding:10px;background:var(--green-lighter);">
                   <label style="color:var(--blue);">Total Weight <span style="font-size:10px;background:#eafad1;color:#3a6a12;padding:1px 6px;border-radius:10px;font-weight:700;">Auto</span></label>
                   <input type="number" id="d2-total-weight" placeholder="Auto-calculated" step="any" readonly style="background:#eafad1;color:var(--blue);font-weight:700;cursor:not-allowed;"/>
-                  <span class="unit" style="color:var(--blue);font-weight:600;">kg — auto calculated</span>
+                  <span class="unit" style="color:var(--blue);font-weight:600;">grams — auto calculated</span>
                 </div>
               </div>
             </div>
@@ -885,7 +885,7 @@
                     <th style="background:#eafad1;">Draft</th>
                     <th style="background:#eafad1;">Output Wt (g/mtr)</th>
                     <th style="background:#eafad1;">Autoleveller</th>
-                    <th style="background:#eafad1;color:var(--blue);font-weight:700;">Total Wt (kg)</th>
+                    <th style="background:#eafad1;color:var(--blue);font-weight:700;">Total Wt (g)</th>
                     <th></th><th></th>
                   </tr>
                 </thead>
@@ -971,7 +971,7 @@
     const length   = parseFloat(document.getElementById('d2-length').value);
     const totalEl  = document.getElementById('d2-total-weight');
     if (!outputWt || !length) { totalEl.value = ''; return; }
-    totalEl.value = Math.round(outputWt * length / 1000);
+    totalEl.value = Math.round(outputWt * length);
   };
 
   // ── Data Recovery: localStorage → Firebase ──
