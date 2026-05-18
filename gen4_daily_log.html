@@ -122,7 +122,22 @@
     }
 
     /* ── Page content ── */
-    .page-content { flex: 1; overflow-y: auto; background: var(--gray-bg); }
+    .page-content {
+      flex: 1; overflow-y: auto; background: var(--gray-bg);
+      position: relative;
+    }
+    .page-content::before {
+      content: '';
+      position: fixed;
+      top: 50%; left: 55%;
+      transform: translate(-50%, -50%);
+      width: 520px; height: 400px;
+      background: url('logo.jpeg') center/contain no-repeat;
+      opacity: 0.06;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .page { position: relative; z-index: 1; }
     .page { padding: 24px 28px; max-width: 1200px; }
     .page-title { font-size: 20px; font-weight: 700; color: var(--blue); margin-bottom: 6px; }
     .page-subtitle { font-size: 13px; color: var(--gray-text); margin-bottom: 20px; }
