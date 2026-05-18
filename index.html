@@ -971,7 +971,7 @@
     const length   = parseFloat(document.getElementById('d2-length').value);
     const totalEl  = document.getElementById('d2-total-weight');
     if (!outputWt || !length) { totalEl.value = ''; return; }
-    totalEl.value = (outputWt * length / 1000).toFixed(3);
+    totalEl.value = Math.round(outputWt * length / 1000);
   };
 
   // ── Data Recovery: localStorage → Firebase ──
