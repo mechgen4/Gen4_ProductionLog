@@ -1267,7 +1267,7 @@
     const allEntries = flyerEntries.length + drawEntries.length;
     const todayCount = flyerEntries.filter(e=>e.date===today).length + drawEntries.filter(e=>e.date===today).length;
     const flyerProd  = flyerEntries.reduce((s,e) => s+(parseFloat(e.prodKg)||0), 0);
-    const drawProd   = drawEntries.reduce((s,e)  => s+(parseFloat(e.p2?.totalWeight)||0), 0);
+    const drawProd   = drawEntries.reduce((s,e)  => s+(parseFloat(e.p2?.totalWeight)||0), 0) / 1000;
     document.getElementById('stat-total').textContent      = allEntries;
     document.getElementById('stat-today').textContent      = todayCount;
     document.getElementById('stat-flyer-prod').textContent = flyerProd.toFixed(1);
