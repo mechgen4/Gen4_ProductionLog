@@ -548,31 +548,31 @@
               <div class="form-grid">
                 <div class="form-group">
                   <label>1.1 &nbsp;Flyer Speed</label>
-                  <input type="number" id="f-flyer-speed" placeholder="e.g. 1200" step="any"/>
+                  <input type="number" id="f-flyer-speed" placeholder="e.g. 1200" step="any" oninput="calcFlyerProduction()"/>
                   <span class="unit">RPM</span>
                 </div>
                 <div class="form-group">
                   <label>1.2 &nbsp;TPI</label>
-                  <input type="number" id="f-tpi" placeholder="e.g. 2.5" step="any"/>
+                  <input type="number" id="f-tpi" placeholder="e.g. 2.5" step="any" oninput="calcFlyerProduction()"/>
                   <span class="unit">Twists Per Inch</span>
                 </div>
                 <div class="form-group">
-                  <label>Hank Time</label>
-                  <input type="text" id="f-hank-time" placeholder="e.g. 00:45"/>
-                  <span class="unit">HH:MM</span>
+                  <label>Hank <span style="font-size:10px;background:#d6eaf8;color:var(--blue);padding:1px 6px;border-radius:10px;font-weight:700;">Ne Count</span></label>
+                  <input type="number" id="f-hank-time" placeholder="e.g. 1.0" step="any" oninput="calcFlyerProduction()"/>
+                  <span class="unit">Hank Count (Ne)</span>
                 </div>
                 <div class="form-group">
                   <label>No. of Spindles</label>
-                  <input type="number" id="f-spindles" placeholder="e.g. 96" step="1"/>
+                  <input type="number" id="f-spindles" placeholder="e.g. 96" step="1" oninput="calcFlyerProduction()"/>
                 </div>
                 <div class="form-group">
                   <label>Draft</label>
                   <input type="number" id="f-draft" placeholder="e.g. 8.5" step="any"/>
                 </div>
                 <div class="form-group">
-                  <label>Production (kg)</label>
-                  <input type="number" id="f-prod-kg" placeholder="e.g. 150.5" step="any"/>
-                  <span class="unit">Kilograms</span>
+                  <label>Production (kg) <span style="font-size:10px;background:#eafad1;color:#3a6a12;padding:1px 6px;border-radius:10px;font-weight:700;">Auto</span></label>
+                  <input type="number" id="f-prod-kg" placeholder="Auto-calculated" step="any" readonly style="background:#eafad1;color:var(--blue);font-weight:700;cursor:not-allowed;"/>
+                  <span class="unit">Kilograms — auto calculated</span>
                 </div>
                 <div class="form-group">
                   <label>No. of Layers</label>
@@ -661,6 +661,23 @@
 
   // ── In-memory state ──
   let flyerEntries = [];
+
+  // ── Flyer Frame: Auto Production Calculation ──
+  window.calcFlyerProduction = function() {
+    const rpm      = parseFloat(document.getElementById('f-flyer-speed').value);
+    const tpi      = parseFloat(document.getElementById('f-tpi').value);
+    const hank     = parseFloat(document.getElementById('f-hank-time').value);
+    const spindles = parseFloat(document.getElementById('f-spindles').value);
+    const prodEl   = document.getElementById('f-prod-kg');
+    if (!rpm || !tpi || !hank || !spindles) { prodEl.value = ''; return; }
+    const tpm         = 40 * tpi;
+    const mMinPerSp   = rpm / tpm;
+    const gPerM       = 0.6 / hank;
+    const gMinPerSp   = gPerM * mMinPerSp;
+    const gShiftPerSp = 60 * 8 * gMinPerSp * 0.8;
+    const prodKg      = (gShiftPerSp * spindles) / 1000;
+    prodEl.value      = prodKg.toFixed(2);
+  };
 
   // ── Data Recovery: localStorage → Firebase ──
   function checkLocalData() {
