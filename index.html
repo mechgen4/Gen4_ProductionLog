@@ -516,7 +516,7 @@
               </div>
               <div>
                 <span class="stat-value" id="stat-draw-prod">0</span>
-                <span class="stat-label">📐 Draw Frame Production (kg)</span>
+                <span class="stat-label">📐 Draw Frame Production (g)</span>
               </div>
             </div>
           </div>
@@ -1267,11 +1267,11 @@
     const allEntries = flyerEntries.length + drawEntries.length;
     const todayCount = flyerEntries.filter(e=>e.date===today).length + drawEntries.filter(e=>e.date===today).length;
     const flyerProd  = flyerEntries.reduce((s,e) => s+(parseFloat(e.prodKg)||0), 0);
-    const drawProd   = drawEntries.reduce((s,e)  => s+(parseFloat(e.p2?.totalWeight)||0), 0) / 1000;
+    const drawProd   = drawEntries.reduce((s,e)  => s+(parseFloat(e.p2?.totalWeight)||0), 0);
     document.getElementById('stat-total').textContent      = allEntries;
     document.getElementById('stat-today').textContent      = todayCount;
     document.getElementById('stat-flyer-prod').textContent = flyerProd.toFixed(1);
-    document.getElementById('stat-draw-prod').textContent  = drawProd.toFixed(1);
+    document.getElementById('stat-draw-prod').textContent  = Math.floor(drawProd);
     document.getElementById('folder-flyer-count').textContent = flyerEntries.length+' entr'+(flyerEntries.length===1?'y':'ies');
     document.getElementById('folder-draw-count').textContent  = drawEntries.length +' entr'+(drawEntries.length ===1?'y':'ies');
   }
